@@ -25,7 +25,7 @@ If you change 1 tick length, you should recalculate handover rate loop in main.p
 """
 # SIM_TIME = 5760*3 #30000
 
-SIM_TIME = 96
+SIM_TIME = 5760*3
 
 # define percentage of anomalies number of occurence
 ANOMALY_PERCENTAGE = 0.025
@@ -41,14 +41,26 @@ PERSONAL_EQUIPMENT_ID = {0:"iot",1:"vehicle",2:"cell_phone",3:"smart_watch",4:"t
 # Generate initial loads for all UEs (PE_NUMBER * CELL_NUMBER UEs)
 MU = PRB/PE_NUMBER
 SIGMA = MU/3
-INITIAL_LOADS = np.random.normal(MU, SIGMA, TOTAL_PE_NUMBER)
+INITIAL_POWER = np.random.normal(MU, SIGMA, TOTAL_PE_NUMBER)
+INITIAL_LOADS = np.round(np.random.normal(MU, SIGMA, TOTAL_PE_NUMBER)).astype(int)
+
+for i, v in enumerate(INITIAL_LOADS):
+	if v < 0 or v == -0:
+		INITIAL_LOADS[i] = 0
+	elif v > 2:
+		INITIAL_LOADS[i] = 1
+
 INITIAL_CONFIG = {
+	0: {}
+}
+INITIAL_CONFIG_POWER = {
 	0: {}
 }
 for i, v in enumerate(INITIAL_LOADS):
 	key = i
 	value = v
 	INITIAL_CONFIG[0][key] = float(value)
+	INITIAL_CONFIG_POWER[0][key] = INITIAL_POWER[i]
 
 # {cell_id : [adjacency cell_id list]}
 OUTFLOW_SETTING = {
