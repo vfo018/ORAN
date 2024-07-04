@@ -68,9 +68,28 @@ class Cell(object):
 
     def update_radius(self):
         cell_radius = self.cell_radius
-        if self.load > BARRING_THRE and self.cell_radius > MIN_CELL_RADIUS:
+        if self.load > STEERING_THRE and self.cell_radius > MIN_CELL_RADIUS:
             cell_radius -= BARRING_DISTANCE
-        elif self.load <= BARRING_THRE and MIN_CELL_RADIUS <= self.cell_radius < CELL_RADIUS:
+        elif self.load <= STEERING_THRE and MIN_CELL_RADIUS <= self.cell_radius < CELL_RADIUS:
             cell_radius += BARRING_DISTANCE
         self.cell_radius = cell_radius
         return cell_radius
+
+    # def update_radius(self, flag):
+    #     cell_radius = self.cell_radius
+    #     if flag == 1:
+    #         cell_radius -= BARRING_DISTANCE
+    #     elif flag == 2:
+    #         cell_radius += BARRING_DISTANCE
+    #     else:
+    #         cell_radius += 0
+    #     self.cell_radius = cell_radius
+    #     return cell_radius
+    #
+    def update_radius_flag(self):
+        if self.load > STEERING_THRE and self.cell_radius > MIN_CELL_RADIUS:
+            return 1
+        elif self.load <= STEERING_THRE and MIN_CELL_RADIUS <= self.cell_radius < CELL_RADIUS:
+            return 2
+        else:
+            return 0

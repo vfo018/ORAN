@@ -5,7 +5,7 @@ from scipy.ndimage import gaussian_filter1d
 from matplotlib.ticker import LogLocator, LogFormatter
 
 
-losses = np.load('lstm-cell-load-1-losses-demo.npy')
+losses = np.load('dnn-cell-barring-steering-losses-ue40.npy')
 # losses = np.load('dnn-cell-barring-losses.npy')
 # y_smoothed = gaussian_filter1d(losses, sigma=4)
 # losses_f = np.load('losses-ld-f-2000.npy')
@@ -24,7 +24,7 @@ for i, v in enumerate(y_smoothed):
     if i >= 1500:
         y_smoothed[i] = y_smoothed[i]/1.5
 plt.plot(y_smoothed, color = 'blue', label = 'Loss')
-plt.title('Training Convergency of Cell Loads')
+plt.title('Training Convergency of Cell Barring & Traffic Steering')
 plt.xlabel('Training Times')
 plt.ylabel('MSE')
 plt.grid()
@@ -34,5 +34,5 @@ plt.gca().yaxis.set_major_locator(LogLocator(base=10.0))
 plt.gca().yaxis.set_major_formatter(LogFormatter(base=10.0, labelOnlyBase=False))
 plt.xlim(left=0)
 # plt.show()
-plt.savefig('loads_training_convergency_plot.png')
+# plt.savefig('loads_training_convergency_plot.png')
 plt.show()
