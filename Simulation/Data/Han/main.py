@@ -113,39 +113,47 @@ def simulation(cells, pes, folder_path):
                         pe_load_sum = pe_load_sum + pe.load
 
             cell.load = pe_load_sum
-
-            if pe_load_sum >= 45:
-                cell.cell_barring_flag = 1
-                if cell.radius >= 60:
-                    cell.radius = cell.radius - 10
-            else:
+            radius = 0
+            if pe_load_sum < 45 and 60 <= cell.radius:
                 cell.cell_barring_flag = 0
+                cell.traffic_steering_flag = 2
+                radius = cell.radius
+                cell.radius = cell.radius + 2
+            elif pe_load_sum >= 45 and cell.radius > 60:
+                cell.traffic_steering_flag = 1
+                cell.cell_barring_flag = 0
+                radius = cell.radius
+                cell.radius = cell.radius - 2
+            elif cell.radius <= 60 and pe_load_sum >= 45:
+                cell.traffic_steering_flag = 0
+                cell.cell_barring_flag = 1
+                radius = cell.radius
 
             if cell.id == 0:
-                csv_record.cell_0_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_0_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
             if cell.id == 1:
-                csv_record.cell_1_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_1_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
             if cell.id == 2:
-                csv_record.cell_2_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_2_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
             if cell.id == 3:
-                csv_record.cell_3_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_3_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
             if cell.id == 4:
-                csv_record.cell_4_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_4_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
             if cell.id == 5:
-                csv_record.cell_5_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_5_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
             if cell.id == 6:
-                csv_record.cell_6_total_load_results.append([t, pe_load_sum, cell.cell_barring_flag, cell.radius, len(cell.cat_list[0].pe_list)])
+                csv_record.cell_6_total_load_results.append([t, pe_load_sum, cell.traffic_steering_flag, cell.cell_barring_flag, radius, len(cell.cat_list[0].pe_list)])
 
 
-        cells_figure(cells, pes, "before barring")
+        #cells_figure(cells, pes, "before barring")
 
         if TRAFFIC_STEERING:
             cells, pes = traffic_steering(cells, pes)
-        cells_figure(cells, pes, "after_barring")
+        #cells_figure(cells, pes, "after_barring")
 
-        for cell in cells:
-            if cell.cell_barring_flag == 0:
-                cell.radius = cell.radius + 10
+        #for cell in cells:
+        #    if cell.cell_barring_flag == 0:
+        #        cell.radius = cell.radius + 2
 
         for ue in pes:
             if ue.related_cell_id == 99:
@@ -157,7 +165,7 @@ def simulation(cells, pes, folder_path):
                         ue.assign_cell(cell.id)
                         break
             csv_record.pes_results.append([t, ue.related_cell_id, ue.pe_id, ue.load, len(pes)])
-        cells_figure(cells, pes, "after_steering")
+        #cells_figure(cells, pes, "after_steering")
 
         csv_record.save_result_csv(folder_path)
     return
@@ -195,11 +203,11 @@ def cells_figure(cells, pes, barring_stap):
     plt.xticks(size=25)
     plt.yticks(size=25)
     plt.grid(alpha=0.9)
-    # plt.savefig('D:\\saved_samples.pdf')
+    plt.savefig('D:\\saved_samples.pdf')
     plt.savefig(fig_path)
-    plt.show()
-    # plt.pause(20)
-    # plt.close()
+    plt.draw()
+    plt.pause(1)
+    plt.close()
     return
 
 
@@ -217,7 +225,7 @@ def create_scenerio(inflow_setting, outflow_setting):
             pe_list = []
 
             for z in range(NUMBER_PE * x, NUMBER_PE + NUMBER_PE * x):
-                pe_load = 1.2
+                pe_load = 1.1
                 pe = PersonalEquipment(z, pe_load)  # num of pe types one PRB for one type
                 pe.assign_category(y)
                 pe.assign_cell(x)
@@ -314,22 +322,22 @@ def cells_fig(cells, cell_radius):
             ax_y.append(dis)
         pes_y_coordinates.update({cell.id: ax_y})
 
-    plt.subplots(figsize=(20, 20))
-    for cell in cells:
-        circle = plt.Circle((cell.coordinate_x, cell.coordinate_y), plt_radius, fill=False,
-                            linewidth=4)
-        plt.gca().add_artist(circle)
-        plt.scatter(pes_x_coordinates[cell.id], pes_y_coordinates[cell.id], linewidth=4)
+    #plt.subplots(figsize=(20, 20))
+    #for cell in cells:
+    #    circle = plt.Circle((cell.coordinate_x, cell.coordinate_y), plt_radius, fill=False,
+    #                        linewidth=4)
+    #    plt.gca().add_artist(circle)
+    #    plt.scatter(pes_x_coordinates[cell.id], pes_y_coordinates[cell.id], linewidth=4)
 
-    plt.xlim(-10, 10)
-    plt.ylim(-10, 10)
-    plt.xticks(size=25)
-    plt.yticks(size=25)
-    plt.grid(alpha=0.9)
-    plt.savefig('D:\\saved_samples.pdf')
-    plt.show()
-    # plt.pause(20)
-    # plt.close()
+    #plt.xlim(-10, 10)
+    #plt.ylim(-10, 10)
+    #plt.xticks(size=25)
+    #plt.yticks(size=25)
+    #plt.grid(alpha=0.9)
+    #plt.savefig('D:\\saved_samples.pdf')
+    #plt.draw()
+    #plt.pause(1)
+    #plt.close()
     return cells
 
 
