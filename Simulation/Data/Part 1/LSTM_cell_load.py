@@ -71,7 +71,7 @@ X_train, y_train = np.array(X_train), np.array(y_train)
 
 
 regressor = load_model('lstm-cell-load-3-adam-ue40.keras')
-test_data = pd.read_table('output_handover_scenario_testing_UE160_cleaned.csv', sep=',')
+test_data = pd.read_table('output_handover_scenario_testing_UE40_cleaned.csv', sep=',')
 cell_load_test = test_data.iloc[0:, 7:8].values
 cell_load_test = sc.transform(cell_load_test)
 test_set_scaled = []
@@ -86,7 +86,7 @@ for i in range(time_step, len(test_set_scaled)):
     real_cell_load.append(test_set_scaled[i])
 X_test = np.array(X_test)
 mse = np.array([mean_squared_error(real_cell_load, regressor.predict(X_test))])
-np.save('lstm-cell-load-mse-ue160.npy', mse)
+# np.save('lstm-cell-load-mse-ue160.npy', mse)
 real_cell_load = sc.inverse_transform(np.array(real_cell_load)).astype(int)
 predicted_cell_load = np.round(sc.inverse_transform(regressor.predict(X_test))).astype(int)
 
@@ -103,8 +103,8 @@ predicted_cell_load = np.round(sc.inverse_transform(regressor.predict(X_test))).
 # plt.ylabel('Cell Load')
 # plt.legend()
 # plt.show()
-# plt.savefig('cell_load_comparison.png')
-
+# # plt.savefig('cell_load_comparison.png')
+#
 # fig, axs = plt.subplots(CELL_NUMBER, figsize=(14, 20))
 #
 # t = np.arange(300)  # Ensure t has the same length as the data arrays
@@ -121,3 +121,17 @@ predicted_cell_load = np.round(sc.inverse_transform(regressor.predict(X_test))).
 # plt.show()
 
 
+#Generating 7 figures
+
+t = np.arange(300)
+for i in range(CELL_NUMBER):
+    plt.figure()
+    plt.plot(t, real_cell_load[:300, i], label=f'Real Cell {i+1} Load')
+    plt.plot(t, predicted_cell_load[:300, i], linestyle='--', label=f'Predicted Cell {i+1} Load')
+    plt.title(f'Comparison of Real and LSTM Predicted Loads for Cell {i+1}')
+    plt.xlabel('Time (t)')
+    plt.ylabel('Cell Load (PRB)')
+    plt.legend()
+    plt.show()
+    # plt.savefig(f'cell_{i+1}_load_comparison.png')
+    # plt.close()
