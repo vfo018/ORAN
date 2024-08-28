@@ -1,0 +1,130 @@
+import requests
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pyasn1.codec.ber import encoder, decoder
+from pyasn1.type import univ, namedtype, char
+
+# 定义ASN.1结构
+class E2NodeComponentConfigItem(univ.Sequence):
+    componentType = namedtype.NamedTypes(
+        namedtype.NamedType('e2NodeComponentInterfaceType', univ.Integer()),
+        namedtype.NamedType('e2NodeComponentID', char.PrintableString()),
+        namedtype.NamedType('e2NodeComponentConfigurationAcknowledge', univ.Boolean())
+    )
+
+class E2NodeCompConfigAddList(univ.SequenceOf):
+    componentType = E2NodeComponentConfigItem()
+
+class ActionItem(univ.Sequence):
+    componentType = namedtype.NamedTypes(
+        namedtype.NamedType('actionID', univ.Integer()),
+        namedtype.NamedType('actionType', char.VisibleString()),
+        namedtype.NamedType('actionDefinition', char.VisibleString()),
+        namedtype.NamedType('subsequentAction', univ.Boolean())
+    )
+
+class SubscriptionRequest(univ.Sequence):
+    componentType = namedtype.NamedTypes(
+        namedtype.NamedType('reqID', univ.Integer()),
+        namedtype.NamedType('ranFuncID', univ.Integer()),
+        namedtype.NamedType('eventTrigger', char.VisibleString()),
+        namedtype.NamedType('actions', univ.SequenceOf(componentType=ActionItem()))
+    )
+
+class KPMData(univ.Sequence):
+    componentType = namedtype.NamedTypes(
+        namedtype.NamedType('cellID', char.PrintableString()),
+        namedtype.NamedType('kpmValue', univ.Integer())
+    )
+
+# 接收并解码E2 Setup的信息
+def receive_e2_setup(encoded_response):
+    decoded_response, _ = decoder.decode(encoded_response, asn1Spec=E2NodeCompConfigAddList())
+    return decoded_response
+
+# 构建KPM订阅请求
+def create_subscription_request(req_id, ran_func_id, event_trigger, action_id, action_type, action_definition):
+    subscription_request = SubscriptionRequest()
+    subscription_request.setComponentByName('reqID', req_id)
+    subscription_request.setComponentByName('ranFuncID', ran_func_id)
+    subscription_request.setComponentByName('eventTrigger', event_trigger)
+    
+    action_item = ActionItem()
+    action_item.setComponentByName('actionID', action_id)
+    action_item.setComponentByName('actionType', action_type)
+    action_item.setComponentByName('actionDefinition', action_definition)
+    action_item.setComponentByName('subsequentAction', True)
+    
+    # 获取actions并添加ActionItem
+    action_list = subscription_request.getComponentByName('actions')
+    action_list.append(action_item)
+    
+    encoded_request = encoder.encode(subscription_request)
+    return encoded_request
+
+# 发送订阅请求 (HTTP)
+def send_subscription_request_http(encoded_request, ric_api_url):
+    headers = {'Content-Type': 'application/octet-stream'}
+    response = requests.post(ric_api_url, data=encoded_request, headers=headers)
+    return response
+
+# 接收KPM数据的处理程序
+class KPMReceiverHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        
+        # 解码接收到的KPM数据
+        kpm_data, _ = decoder.decode(post_data, asn1Spec=KPMData())
+        cell_id = kpm_data.getComponentByName('cellID')
+        kpm_value = kpm_data.getComponentByName('kpmValue')
+        
+        print(f"Received KPM data: cellID={cell_id}, kpmValue={kpm_value}")
+        
+        self.send_response(200)
+        self.end_headers()
+
+def run_kpm_receiver(server_class=HTTPServer, handler_class=KPMReceiverHTTPRequestHandler, port=8001):
+    server_address = ('', port)
+    httpd = server_class(server_address, handler_class)
+    print(f'Starting KPM Receiver server on port {port}...')
+    httpd.serve_forever()
+
+def main():
+    # 启动KPM接收服务器
+    threading.Thread(target=run_kpm_receiver).start()
+    
+    # 示例E2 Setup响应的编码消息 (假设我们从E2Node接收到的编码消息)
+    ric_api_url = "http://localhost:8000/e2setup"
+    encoded_e2_setup_response = requests.post(ric_api_url).content
+    
+    print("Encoded E2 Setup Response:", encoded_e2_setup_response)
+    
+    e2_node_comp_config_add_list = receive_e2_setup(encoded_e2_setup_response)
+    
+    req_id = 1  # 订阅请求的唯一ID
+    ran_func_id = 1  # 假设KPM的RAN功能ID为1
+    event_trigger = 'Periodic Report'  # 假设我们使用周期性报告
+    action_type = 'Report'
+    action_definition = 'KPM Details'
+    
+    for cell_config in e2_node_comp_config_add_list:
+        cell_id = cell_config.getComponentByName('e2NodeComponentID')
+        print(f"Processing cell: {cell_id}")
+        
+        # 创建订阅请求
+        encoded_request = create_subscription_request(req_id, ran_func_id, event_trigger, req_id, action_type, action_definition)
+
+        # 通过HTTP发送订阅请求
+        ric_api_url = "http://localhost:8000/kpmsubscription"
+        response_http = send_subscription_request_http(encoded_request, ric_api_url)
+
+        if response_http.status_code == 200:
+            print(f"Subscription Request for cell {cell_id} sent successfully via HTTP.")
+        else:
+            print(f"Failed to send Subscription Request for cell {cell_id} via HTTP, status code: {response_http.status_code}")
+        
+        req_id += 1  # 每个请求都有唯一的reqID
+
+if __name__ == "__main__":
+    import threading
+    main()
